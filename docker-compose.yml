@@ -1,0 +1,181 @@
+version: "3.8"
+
+services:
+  # ==================================
+  # Zookeeper
+  # ==================================
+  zookeeper:
+    image: confluentinc/cp-zookeeper:7.8.0
+    platform: linux/amd64
+    environment:
+      ZOOKEEPER_CLIENT_PORT: 2181
+      ZOOKEEPER_TICK_TIME: 2000
+    ports:
+      - "2181:2181"
+    networks:
+      - ai-support-net
+
+  # ==================================
+  # Apache Kafka
+  # ==================================
+  kafka:
+    image: confluentinc/cp-kafka:7.8.0
+    platform: linux/amd64
+    depends_on:
+      - zookeeper
+    ports:
+      - "9092:9092"
+      - "29092:29092"
+    environment:
+      KAFKA_BROKER_ID: 1
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+      KAFKA_LISTENERS: PLAINTEXT://0.0.0.0:9092,PLAINTEXT_HOST://0.0.0.0:29092
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092,PLAINTEXT_HOST://localhost:29092
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
+      KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
+    networks:
+      - ai-support-net
+
+  # ==================================
+  # Apache NiFi
+  # ==================================
+  nifi:
+    image: apache/nifi:1.25.0
+    ports:
+      - "8443:8443"
+    environment:
+      - NIFI_WEB_HTTPS_PORT=8443
+      - SINGLE_USER_CREDENTIALS_USERNAME=admin
+      - SINGLE_USER_CREDENTIALS_PASSWORD=adminpasswordxyz123
+    volumes:
+      - nifi_conf:/opt/nifi/nifi-current/conf
+      - ./nifi/state:/opt/nifi/nifi-current/state
+      - ./nifi/database_repository:/opt/nifi/nifi-current/database_repository
+      - ./nifi/flowfile_repository:/opt/nifi/nifi-current/flowfile_repository
+      - ./nifi/content_repository:/opt/nifi/nifi-current/content_repository
+      - ./nifi/provenance_repository:/opt/nifi/nifi-current/provenance_repository
+    networks:
+      - ai-support-net
+
+  # ==================================
+  # Airflow Metadata Database
+  # ==================================
+  airflow-postgres:
+    image: postgres:15
+    command:
+      - postgres
+      - -c
+      - wal_level=logical
+      - -c
+      - max_replication_slots=10
+      - -c
+      - max_wal_senders=10
+    restart: always
+    environment:
+      POSTGRES_USER: ${AIRFLOW_DB_USER:-airflow}
+      POSTGRES_PASSWORD: ${AIRFLOW_DB_PASSWORD:-airflow}
+      POSTGRES_DB: ${AIRFLOW_DB_NAME:-airflow}
+    volumes:
+      - airflow_postgres_data:/var/lib/postgresql/data
+    ports:
+      - "5433:5432"
+    healthcheck:
+      test: ["CMD", "pg_isready", "-U", "${AIRFLOW_DB_USER:-airflow}"]
+      interval: 10s
+      retries: 5
+      start_period: 5s
+    networks:
+      - ai-support-net
+
+  # ==================================
+  # Apache Airflow
+  # ==================================
+  airflow-init:
+    build:
+      context: .
+      dockerfile: airflow-dbt.dockerfile
+    depends_on:
+      airflow-postgres:
+        condition: service_healthy
+    environment:
+      - AIRFLOW__CORE__LOAD_EXAMPLES=False
+      - AIRFLOW__DATABASE__SQL_ALCHEMY_CONN=postgresql+psycopg2://${AIRFLOW_DB_USER:-airflow}:${AIRFLOW_DB_PASSWORD:-airflow}@airflow-postgres:5432/${AIRFLOW_DB_NAME:-airflow}
+    command: >
+      bash -c "airflow db init && \
+      airflow users create \
+      --username admin \
+      --firstname Admin \
+      --lastname User \
+      --role Admin \
+      --email admin@example.com \
+      --password admin"
+    networks:
+      - ai-support-net
+
+  airflow-webserver:
+    build:
+      context: .
+      dockerfile: airflow-dbt.dockerfile
+    restart: always
+    depends_on:
+      airflow-scheduler:
+        condition: service_started
+      airflow-postgres:
+        condition: service_healthy
+      airflow-init:
+        condition: service_completed_successfully
+    environment:
+      - AIRFLOW__CORE__LOAD_EXAMPLES=False
+      - AIRFLOW__DATABASE__SQL_ALCHEMY_CONN=postgresql+psycopg2://${AIRFLOW_DB_USER:-airflow}:${AIRFLOW_DB_PASSWORD:-airflow}@airflow-postgres:5432/${AIRFLOW_DB_NAME:-airflow}
+      - AIRFLOW__CORE__EXECUTOR=LocalExecutor
+    volumes:
+      - ./dags:/opt/airflow/dags
+      - ./logs:/opt/airflow/logs
+      - ./plugins:/opt/airflow/plugins
+      - ./dbt:/opt/airflow/dbt
+      - ./dbt/.dbt:/home/airflow/.dbt
+    ports:
+      - "8080:8080"
+    healthcheck:
+      test: ["CMD", "curl", "--fail", "http://localhost:8080/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+    command: webserver
+    networks:
+      - ai-support-net
+
+  airflow-scheduler:
+    build:
+      context: .
+      dockerfile: airflow-dbt.dockerfile
+    restart: always
+    depends_on:
+      airflow-postgres:
+        condition: service_healthy
+      airflow-init:
+        condition: service_completed_successfully
+    environment:
+      - AIRFLOW__CORE__LOAD_EXAMPLES=False
+      - AIRFLOW__DATABASE__SQL_ALCHEMY_CONN=postgresql+psycopg2://${AIRFLOW_DB_USER:-airflow}:${AIRFLOW_DB_PASSWORD:-airflow}@airflow-postgres:5432/${AIRFLOW_DB_NAME:-airflow}
+      - AIRFLOW__CORE__EXECUTOR=LocalExecutor
+    volumes:
+      - ./dags:/opt/airflow/dags
+      - ./logs:/opt/airflow/logs
+      - ./plugins:/opt/airflow/plugins
+      - ./dbt:/opt/airflow/dbt
+      - ./dbt/.dbt:/home/airflow/.dbt
+    command: scheduler
+    networks:
+      - ai-support-net
+
+volumes:
+  airflow_postgres_data:
+  nifi_conf:
+
+networks:
+  ai-support-net:
+    name: ai-support-net

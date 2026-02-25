@@ -1,0 +1,49 @@
+# Environments
+.env
+.venv
+env/
+venv/
+ENV/
+env.bak/
+venv.bak/
+
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# IDE / Editor folders
+.idea/
+.vscode/
+*.swp
+*.orig
+
+# Docker Volumes and State
+/minio/data/
+/postgres/data/
+/nifi/conf/
+/nifi/state/
+/nifi/database_repository/
+/nifi/flowfile_repository/
+/nifi/content_repository/
+/nifi/provenance_repository/
+
+# Airflow specific
+/logs/
+/dags/__pycache__/
+/plugins/__pycache__/
+webserver_config.py
+airflow.cfg
+
+# dbt specific
+/dbt/target/
+/dbt/dbt_packages/
+/dbt/logs/
+/dbt/edr_target/
+/dbt/.dbt/
+
+# macOS specific
+.DS_Store
+
+# Misc
+*.log
