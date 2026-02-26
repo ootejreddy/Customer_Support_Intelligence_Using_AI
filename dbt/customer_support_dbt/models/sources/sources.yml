@@ -1,0 +1,8 @@
+sources:
+  - name: raw
+    description: Raw customer support data
+    database: SUPPORT_INTEL_DB
+    schema: RAW
+    tables:
+      - name: CUSTOMER_SUPPORT_TICKETS
+        description: Customer Support Tickets Data

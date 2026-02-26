@@ -1,0 +1,4 @@
+models:
+  - name: bronze_customer_support_tickets
+    config:
+      materialization: table

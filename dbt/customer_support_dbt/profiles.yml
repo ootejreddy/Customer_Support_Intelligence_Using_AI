@@ -1,0 +1,13 @@
+customer_support_dbt:
+  outputs:
+    dev:
+      account: BVXXLFN-NB84457
+      database: SUPPORT_INTEL_DB
+      password: D49tTcqFPnvv7AM
+      role: DBT_ROLE
+      schema: DBT_SCHEMA
+      threads: 1
+      type: snowflake
+      user: SAIOOTEJ
+      warehouse: SUPPORT_DEV_WH
+  target: dev
