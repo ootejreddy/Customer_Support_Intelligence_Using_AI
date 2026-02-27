@@ -1,0 +1,5 @@
+models:
+  - name: stg_customer_support_tickets
+    description: "Silver layer model for customer support tickets, selecting from the bronze model."
+    config:
+      materialized: table

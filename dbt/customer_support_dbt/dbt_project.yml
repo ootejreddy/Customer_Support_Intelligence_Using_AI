@@ -34,3 +34,6 @@ models:
     bronze:
       +materialized: table
       +schema: bronze
+    silver:
+      +materialized: table
+      +schema: silver

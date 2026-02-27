@@ -1,0 +1,38 @@
+# Complete Infrastructure and DBT Setup Walkthrough
+
+We have successfully built your industrial Docker workspace for the `Customer_Support_Intelligence_Using_AI` project, taking inspiration from your previous banking project!
+
+## 1. Core Infrastructure (`docker-compose.yml`)
+
+We replaced the basic compose with a robust, interconnected setup:
+
+- **Apache Airflow** (Custom image with `dbt-core` and `dbt-snowflake` pre-installed to ensure fast and reliable startup).
+  - **Airflow Metadata DB**: Dedicated `postgres:15` container exposed on port `5433`.
+- **Apache NiFi** (`v1.25.0` with mapped `nifi_conf` volume to prevent startup crashes).
+- **Apache Kafka & Zookeeper** (`v7.8.0`) for real-time message streaming.
+- **Debezium Connect** for Change Data Capture (CDC).
+- **Primary Database**: Designed for Debezium logical replication.
+- **MinIO**: For S3-compatible object storage layer.
+
+All services communicate through a centralized network: `ai-support-net`.
+
+## 2. DBT Configuration
+
+We solved the tricky problem of organizing DBT effectively within Airflow without bloating your local environment.
+
+- **Dockerfile Approach**: `dbt` is installed inside Airflow via `requirements.txt` passing cleanly copied into `airflow-dbt.dockerfile`.
+- **Volume Mapping**: The local `/dbt` folder is mapped inside your Airflow container so changes made locally instantly reflect in Airflow's environment.
+- **Initialization**: We initialized `dbt init` _through_ Docker (`docker exec`) to borrow Airflow's installation without having to install hundreds of megabytes of Python packages on your Mac natively.
+- **Snowflake Connection**: We created the `profiles.yml` manually to overcome interactive terminal (`tty`) limitations, and verified it using `dbt debug`!
+
+> [!TIP]
+> **Next Steps in DBT & Airflow:**
+> You can now write your `.sql` models inside `dbt/customer_support_dbt/models/`. Airflow can automatically execute these models using the `BashOperator` (e.g., `bash_command="cd /opt/airflow/dbt/customer_support_dbt && dbt run"`).
+
+## 3. Environment Protection (`.gitignore`)
+
+We created a comprehensive `.gitignore` file to ensure:
+
+- Docker state data (Postgres volumes, NiFi repositories, MinIO data) don't get accidentally committed.
+- Airflow logs (which get huge rapidly) are safely ignored.
+- DBT compile targets are excluded.
