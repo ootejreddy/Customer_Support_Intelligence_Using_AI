@@ -1,0 +1,5 @@
+clusters:
+  - id: local-kafka
+    name: "Local Kafka Cluster"
+    bootstrapServers: kafka:9092
+    color: "#2495FF"
