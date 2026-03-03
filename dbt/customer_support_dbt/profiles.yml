@@ -1,13 +1,13 @@
 customer_support_dbt:
   outputs:
     dev:
-      account: BVXXLFN-NB84457
+      account: gsvvwno-ts70298
       database: SUPPORT_INTEL_DB
-      password: "{{ env_var('DBT_PASSWORD') }}"
+      private_key_path: /Users/saiootejreddy/.snowflake/rsa_key.p8
       role: DBT_ROLE
       schema: DBT_SCHEMA
       threads: 1
       type: snowflake
-      user: SAIOOTEJ
+      user: HASHIRAMASENJU2
       warehouse: SUPPORT_DEV_WH
   target: dev
