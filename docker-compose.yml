@@ -64,8 +64,8 @@ services:
   conduktor-postgres:
     image: postgres:15
     environment:
-      POSTGRES_USER: conduktor
-      POSTGRES_PASSWORD: conduktor
+      POSTGRES_USER: ${CONDUKTOR_DB_USER}
+      POSTGRES_PASSWORD: ${CONDUKTOR_DB_PASSWORD}
       POSTGRES_DB: conduktor-console
     volumes:
       - conduktor_postgres_data:/var/lib/postgresql/data
@@ -83,7 +83,7 @@ services:
     environment:
       - NIFI_WEB_HTTPS_PORT=8443
       - SINGLE_USER_CREDENTIALS_USERNAME=admin
-      - SINGLE_USER_CREDENTIALS_PASSWORD=adminpasswordxyz123
+      - SINGLE_USER_CREDENTIALS_PASSWORD=${NIFI_PASSWORD}
     volumes:
       - nifi_conf:/opt/nifi/nifi-current/conf
       - ./nifi/state:/opt/nifi/nifi-current/state
@@ -162,6 +162,8 @@ services:
         condition: service_healthy
       airflow-init:
         condition: service_completed_successfully
+    env_file:
+      - .env
     environment:
       - AIRFLOW__CORE__LOAD_EXAMPLES=False
       - AIRFLOW__DATABASE__SQL_ALCHEMY_CONN=postgresql+psycopg2://${AIRFLOW_DB_USER:-airflow}:${AIRFLOW_DB_PASSWORD:-airflow}@airflow-postgres:5432/${AIRFLOW_DB_NAME:-airflow}
@@ -193,6 +195,8 @@ services:
         condition: service_healthy
       airflow-init:
         condition: service_completed_successfully
+    env_file:
+      - .env
     environment:
       - AIRFLOW__CORE__LOAD_EXAMPLES=False
       - AIRFLOW__DATABASE__SQL_ALCHEMY_CONN=postgresql+psycopg2://${AIRFLOW_DB_USER:-airflow}:${AIRFLOW_DB_PASSWORD:-airflow}@airflow-postgres:5432/${AIRFLOW_DB_NAME:-airflow}
@@ -204,6 +208,42 @@ services:
       - ./dbt:/opt/airflow/dbt
       - ./dbt/.dbt:/home/airflow/.dbt
     command: scheduler
+    networks:
+      - ai-support-net
+
+  # ==================================
+  # Kafka Connect
+  # ==================================
+  kafka-connect:
+    image: confluentinc/cp-kafka-connect:7.8.0
+    container_name: kafka-connect
+    depends_on:
+      - kafka
+    ports:
+      - "8083:8083"
+    environment:
+      KAFKA_HEAP_OPTS: "-Xms512M -Xmx1G"
+      CONNECT_BOOTSTRAP_SERVERS: kafka:9092
+      CONNECT_REST_PORT: 8083
+      CONNECT_GROUP_ID: "kafka-connect-group"
+      CONNECT_CONFIG_STORAGE_TOPIC: "_connect-configs"
+      CONNECT_OFFSET_STORAGE_TOPIC: "_connect-offsets"
+      CONNECT_STATUS_STORAGE_TOPIC: "_connect-status"
+      CONNECT_CONFIG_STORAGE_REPLICATION_FACTOR: "1"
+      CONNECT_OFFSET_STORAGE_REPLICATION_FACTOR: "1"
+      CONNECT_STATUS_STORAGE_REPLICATION_FACTOR: "1"
+      CONNECT_KEY_CONVERTER: "org.apache.kafka.connect.storage.StringConverter"
+      CONNECT_VALUE_CONVERTER: "org.apache.kafka.connect.storage.StringConverter"
+      CONNECT_INTERNAL_KEY_CONVERTER: "org.apache.kafka.connect.json.JsonConverter"
+      CONNECT_INTERNAL_VALUE_CONVERTER: "org.apache.kafka.connect.json.JsonConverter"
+      CONNECT_REST_ADVERTISED_HOST_NAME: "kafka-connect"
+      CONNECT_PLUGIN_PATH: "/usr/share/java,/usr/share/confluent-hub-components"
+    command:
+      - bash
+      - -c
+      - |
+        confluent-hub install --no-prompt snowflakeinc/snowflake-kafka-connector:latest
+        /etc/confluent/docker/run
     networks:
       - ai-support-net
 

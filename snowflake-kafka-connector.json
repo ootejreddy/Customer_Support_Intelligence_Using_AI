@@ -1,0 +1,16 @@
+{
+  "name": "snowflake_kafka_connector",
+  "config": {
+    "connector.class": "com.snowflake.kafka.connector.SnowflakeSinkConnector",
+    "tasks.max": "1",
+    "topics": "CUSTOMER_SUPPORT_TICKETS",
+    "snowflake.url.name": "GSVVWNO-TS70298.snowflakecomputing.com",
+    "snowflake.user.name": "KAFKA_CONNECTOR_USER",
+    "snowflake.private.key": "${SNOWFLAKE_PRIVATE_KEY}",
+    "snowflake.database.name": "SUPPORT_INTEL_DB",
+    "snowflake.schema.name": "RAW",
+    "snowflake.role.name": "KAFKA_CONNECTOR_ROLE",
+    "snowflake.ingestion.method": "SNOWPIPE_STREAMING",
+    "value.converter": "org.apache.kafka.connect.storage.StringConverter"
+  }
+}

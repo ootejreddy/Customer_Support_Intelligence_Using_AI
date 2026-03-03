@@ -3,7 +3,7 @@ customer_support_dbt:
     dev:
       account: BVXXLFN-NB84457
       database: SUPPORT_INTEL_DB
-      password: D49tTcqFPnvv7AM
+      password: "{{ env_var('DBT_PASSWORD') }}"
       role: DBT_ROLE
       schema: DBT_SCHEMA
       threads: 1
