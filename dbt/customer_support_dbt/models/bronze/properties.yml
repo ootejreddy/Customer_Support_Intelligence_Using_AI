@@ -2,3 +2,34 @@ models:
   - name: bronze_customer_support_tickets
     config:
       materialized: table
+
+  - name: bronze_tickets_extracted
+    description: Incremental extraction of customer support tickets from Kafka ingested variant data
+    config:
+      materialized: incremental
+    columns:
+      - name: ticket_id
+        description: Unique identifier for each ticket (MD5 hash of partition, offset, topic)
+        tests:
+          - unique
+          - not_null
+      - name: subject
+        description: Original ticket subject
+      - name: body
+        description: Original ticket body/description
+      - name: language
+        description: Language code of the ticket (e.g., en, de, fr)
+      - name: ticket_type
+        description: Type of ticket (Request, Incident, etc.)
+      - name: queue
+        description: Support queue assignment
+      - name: original_priority
+        description: Original priority from source system
+      - name: answer
+        description: Response/answer to the ticket
+      - name: created_at
+        description: Timestamp when ticket was created
+        tests:
+          - not_null
+      - name: ingested_at
+        description: Timestamp when ticket was ingested into Snowflake

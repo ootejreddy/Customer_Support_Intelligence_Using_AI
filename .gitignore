@@ -50,3 +50,7 @@ airflow.cfg
 implementation_plan.md
 implementation_plan*.md.*
 implementation_*.md
+
+# Streamlit secrets
+.streamlit/secrets.toml
+**/secrets.toml

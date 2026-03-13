@@ -1,0 +1,27 @@
+models:
+  - name: mart_tickets_dashboard
+    description: Gold layer mart for ticket analytics dashboard
+    columns:
+      - name: ticket_id
+        description: Unique ticket identifier
+        tests:
+          - unique
+          - not_null
+      - name: subject
+        description: Original ticket subject
+      - name: subject_english
+        description: English translated subject
+      - name: body_english
+        description: English translated body
+      - name: ai_category
+        description: AI-classified category
+      - name: ai_priority
+        description: AI-determined priority (critical, high, medium, low)
+      - name: sentiment_score
+        description: Sentiment score from -1 to 1
+      - name: sentiment_label
+        description: Sentiment classification
+      - name: priority_rank
+        description: Numeric priority rank for sorting (1=critical, 4=low)
+      - name: sentiment_color
+        description: Color code for UI display (red, green, gray)

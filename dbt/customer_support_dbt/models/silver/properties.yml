@@ -3,3 +3,52 @@ models:
     description: "Silver layer model for customer support tickets, selecting from the bronze model."
     config:
       materialized: table
+
+  - name: silver_tickets_enriched
+    description: AI-enriched customer support tickets with translation, categorization, sentiment, and priority
+    config:
+      materialized: incremental
+    columns:
+      - name: ticket_id
+        description: Unique identifier for each ticket
+        tests:
+          - unique
+          - not_null
+      - name: subject
+        description: Original ticket subject
+      - name: subject_english
+        description: Ticket subject translated to English (if original was non-English)
+      - name: body
+        description: Original ticket body/description
+      - name: body_english
+        description: Ticket body translated to English (if original was non-English)
+      - name: language
+        description: Original language code of the ticket
+      - name: ticket_type
+        description: Type of ticket from source system
+      - name: ai_category
+        description: AI-classified category using Cortex CLASSIFY_TEXT
+        tests:
+          - accepted_values:
+              arguments:
+                values: ['Billing Issue', 'Technical Support', 'Product Inquiry', 'Complaint', 'Feature Request', 'Account Issue', 'General Question']
+      - name: queue
+        description: Support queue assignment
+      - name: original_priority
+        description: Priority from source system
+      - name: ai_priority
+        description: AI-determined priority using Cortex COMPLETE
+      - name: sentiment_score
+        description: Sentiment score from Cortex SENTIMENT (-1 to 1)
+      - name: sentiment_label
+        description: Sentiment classification (positive, neutral, negative)
+        tests:
+          - accepted_values:
+              arguments:
+                values: ['positive', 'neutral', 'negative']
+      - name: created_at
+        description: Timestamp when ticket was created
+        tests:
+          - not_null
+      - name: processed_at
+        description: Timestamp when AI enrichment was applied
